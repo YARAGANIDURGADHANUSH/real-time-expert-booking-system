@@ -5,10 +5,9 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const connectDB = require("./backend/config/db");
-
-const expertRoutes = require("./backend/routes/expertRoutes");
-const bookingRoutes = require("./backend/routes/bookingRoutes");
+const connectDB = require('./config/db');
+const expertRoutes = require("./routes/expertRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
 const app = express();
 
