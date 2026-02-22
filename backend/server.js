@@ -8,8 +8,8 @@ const { Server } = require("socket.io");
 const connectDB = require('./config/db');
 const expertRoutes = require("./routes/expertRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
-
 const app = express();
+app.use(cors());
 
 /* Middleware */
 app.use(cors());

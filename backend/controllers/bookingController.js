@@ -1,20 +1,48 @@
 const Booking = require("../models/Booking");
 
-/* CREATE BOOKING */
+/* ===============================
+   CREATE BOOKING
+================================= */
 exports.createBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.create(req.body);
+    /* ✅ VALIDATION */
+    const { expertId, name, email, phone, date, timeSlot, notes } = req.body;
 
-    // realtime update
-    req.io.emit("slotBooked", booking);
+    if (!expertId || !name || !email || !phone || !date || !timeSlot) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields must be provided"
+      });
+    }
+
+    /* ✅ CREATE BOOKING */
+    const booking = await Booking.create({
+      expertId,
+      name,
+      email,
+      phone,
+      date,
+      timeSlot,
+      notes
+    });
+
+    /* ✅ REAL-TIME SLOT UPDATE */
+    if (req.io) {
+      req.io.emit("slotBooked", booking);
+    }
 
     res.status(201).json({
-      message: "Booking successful"
+      success: true,
+      message: "Booking successful",
+      booking
     });
+
   } catch (err) {
 
+    /* ✅ DOUBLE BOOKING ERROR */
     if (err.code === 11000) {
       return res.status(400).json({
+        success: false,
         message: "Slot already booked"
       });
     }
@@ -23,22 +51,65 @@ exports.createBooking = async (req, res, next) => {
   }
 };
 
-/* UPDATE STATUS */
-exports.updateStatus = async (req, res) => {
-  const booking = await Booking.findByIdAndUpdate(
-    req.params.id,
-    { status: req.body.status },
-    { new: true }
-  );
 
-  res.json(booking);
+/* ===============================
+   UPDATE BOOKING STATUS
+================================= */
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        message: "Status is required"
+      });
+    }
+
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      booking
+    });
+
+  } catch (err) {
+    next(err);
+  }
 };
 
-/* GET BOOKINGS BY EMAIL */
-exports.getBookings = async (req, res) => {
-  const bookings = await Booking.find({
-    email: req.query.email
-  }).populate("expertId");
 
-  res.json(bookings);
+/* ===============================
+   GET BOOKINGS BY EMAIL
+================================= */
+exports.getBookings = async (req, res, next) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email query parameter required"
+      });
+    }
+
+    const bookings = await Booking.find({ email })
+      .populate("expertId");
+
+    res.json({
+      success: true,
+      bookings
+    });
+
+  } catch (err) {
+    next(err);
+  }
 };
