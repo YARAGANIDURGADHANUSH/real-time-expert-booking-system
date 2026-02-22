@@ -1,115 +1,60 @@
 const Booking = require("../models/Booking");
+const Expert = require("../models/Expert");
 
-/* ===============================
-   CREATE BOOKING
-================================= */
-exports.createBooking = async (req, res, next) => {
+/* CREATE BOOKING */
+const createBooking = async (req, res) => {
   try {
-    /* ✅ VALIDATION */
-    const { expertId, name, email, phone, date, timeSlot, notes } = req.body;
+    const booking = await Booking.create(req.body);
 
-    if (!expertId || !name || !email || !phone || !date || !timeSlot) {
+    // realtime update
+    req.io.emit("slotBooked", booking);
+
+    res.status(201).json(booking);
+  } catch (error) {
+    console.error(error);
+
+    if (error.code === 11000) {
       return res.status(400).json({
-        success: false,
-        message: "All required fields must be provided"
+        message: "Slot already booked",
       });
     }
 
-    /* ✅ CREATE BOOKING */
-    const booking = await Booking.create({
-      expertId,
-      name,
-      email,
-      phone,
-      date,
-      timeSlot,
-      notes
-    });
-
-    /* ✅ REAL-TIME SLOT UPDATE */
-    if (req.io) {
-      req.io.emit("slotBooked", booking);
-    }
-
-    res.status(201).json({
-      success: true,
-      message: "Booking successful",
-      booking
-    });
-
-  } catch (err) {
-
-    /* ✅ DOUBLE BOOKING ERROR */
-    if (err.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "Slot already booked"
-      });
-    }
-
-    next(err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-
-/* ===============================
-   UPDATE BOOKING STATUS
-================================= */
-exports.updateStatus = async (req, res, next) => {
+/* UPDATE STATUS */
+const updateBookingStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({
-        message: "Status is required"
-      });
-    }
-
     const booking = await Booking.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { status: req.body.status },
       { new: true }
     );
 
-    if (!booking) {
-      return res.status(404).json({
-        message: "Booking not found"
-      });
-    }
-
-    res.json({
-      success: true,
-      booking
-    });
-
-  } catch (err) {
-    next(err);
+    res.json(booking);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-
-/* ===============================
-   GET BOOKINGS BY EMAIL
-================================= */
-exports.getBookings = async (req, res, next) => {
+/* GET BOOKINGS BY EMAIL */
+const getBookingsByEmail = async (req, res) => {
   try {
-    const { email } = req.query;
+    const bookings = await Booking.find({
+      email: req.query.email,
+    }).populate("expertId");
 
-    if (!email) {
-      return res.status(400).json({
-        message: "Email query parameter required"
-      });
-    }
-
-    const bookings = await Booking.find({ email })
-      .populate("expertId");
-
-    res.json({
-      success: true,
-      bookings
-    });
-
-  } catch (err) {
-    next(err);
+    res.json(bookings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
+};
+
+module.exports = {
+  createBooking,
+  updateBookingStatus,
+  getBookingsByEmail,
 };
