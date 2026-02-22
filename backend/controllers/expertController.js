@@ -1,21 +1,59 @@
 const Expert = require("../models/Expert");
 
-exports.getExperts = async (req, res) => {
-  const { page = 1, limit = 5, category, search } = req.query;
+/* ===============================
+   GET ALL EXPERTS
+================================*/
+const getExperts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
 
-  const query = {};
+    const filter = {};
 
-  if (category) query.category = category;
-  if (search) query.name = { $regex: search, $options: "i" };
+    // search by name
+    if (req.query.search) {
+      filter.name = {
+        $regex: req.query.search,
+        $options: "i",
+      };
+    }
 
-  const experts = await Expert.find(query)
-    .skip((page - 1) * limit)
-    .limit(Number(limit));
+    // filter by category
+    if (req.query.category) {
+      filter.category = req.query.category;
+    }
 
-  res.json(experts);
+    const experts = await Expert.find(filter)
+      .skip(skip)
+      .limit(limit);
+
+    res.json(experts);
+  } catch (error) {
+    console.error("GET EXPERTS ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
 
-exports.getExpertById = async (req, res) => {
-  const expert = await Expert.findById(req.params.id);
-  res.json(expert);
+/* ===============================
+   GET SINGLE EXPERT
+================================*/
+const getExpertById = async (req, res) => {
+  try {
+    const expert = await Expert.findById(req.params.id);
+
+    if (!expert) {
+      return res.status(404).json({ message: "Expert not found" });
+    }
+
+    res.json(expert);
+  } catch (error) {
+    console.error("GET EXPERT ERROR:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+module.exports = {
+  getExperts,
+  getExpertById,
 };
