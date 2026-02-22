@@ -59,8 +59,8 @@ app.use((req, res, next) => {
 /* ===============================
    ROUTES
 ================================*/
-app.use("/api/experts", expertRoutes);
-app.use("/api/bookings", bookingRoutes);
+app.use("/api", expertRoutes);
+app.use("/api", bookingRoutes);
 
 /* Health check route (VERY IMPORTANT for Render) */
 app.get("/", (req, res) => {
